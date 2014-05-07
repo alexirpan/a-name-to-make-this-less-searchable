@@ -1,7 +1,7 @@
 # Global variables are worst variables but I'm lazy
 from math import floor
 import random
-fin = open("30k.in", "r")
+fin = open("../1.in", "r")
 v, e, p = map(int, fin.readline().split())
 # precompute modular inverses
 inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
@@ -21,6 +21,10 @@ def satisfies(eqn, assign):
     a, b, c, d, e = eqn
     return (a * assign[b] + c * assign[d] + e) % p == 0
     
+# initial satisfied array
+prev_equations = [satisfies(eqn, state) for eqn in equations]
+changed_index = [0]
+    
 def energy(assign):
     # note that we want to minimize this!
     # rough test for now
@@ -28,7 +32,9 @@ def energy(assign):
     # to make this run faster, this function has memory
     # only needs to update on the updated indices
     # uses global variables for this...I KNOW IT'S AWFUL
-    return -sum(satisfies(eqn, assign) for eqn in equations)
+    for eqn_index in includes[changed_index[0]]:
+        prev_equations[eqn_index] = satisfies(equations[eqn_index], assign)
+    return -sum(prev_equations)
     
 def local_max(state):
     # if local_max, return False
@@ -72,18 +78,15 @@ def assign_with_given(state, index):
         best_score = max(scores[i])
         choices = [(value,score) for value,score in enumerate(scores[i]) if score == best_score]
         state[i] = random.choice(choices)[0]
-    
+ 
 def move(state):
-    # change one variable and update all others based on this
-    # update takes at most O(E+VP)
+    # change one variable to something else
     ind = random.randint(0, v-1)
-    state[ind] = random.randint(0, p-1)
-    assign_with_given(state, ind)
-    
+    changed_index[0] = ind
+    state[ind] = random.randint(0, p-1)    
 
 from anneal import Annealer
 annealer = Annealer(energy, move)
-schedule = annealer.auto(state, minutes=10)
-state, e = annealer.anneal(state, 2, 0.0001, 
-                            5000, updates=6)
+state, e = annealer.anneal(state, 100, 0.001, 
+                            500000, updates=6)
 print sum(satisfies(eqn, state) for eqn in equations)  # the "final" score
