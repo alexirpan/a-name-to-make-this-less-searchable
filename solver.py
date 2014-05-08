@@ -17,6 +17,8 @@ def energy(assign):
         prev_equations[eqn_index] = satisfies(equations[eqn_index], assign)
     return -sum(prev_equations)
     
+plateau = [0]
+    
 def local_max(state):
     # if local_max, return False
     # else, return an (index, value) pair. index is a random index to improve, value is what to set it to.
@@ -37,6 +39,10 @@ def local_max(state):
         best_val, best_score = random.choice(filter(lambda x: x[1] == best_score, enumerate(score)))
         # compare best score to initial value. if 0, then this is a local max for this variable
         if best_score - score[original_val] > 0:
+            plateau[0] = 0
+            return index, best_val
+        elif plateau[0] < 10 and best_val != original_val:
+            plateau[0] += 1
             return index, best_val
     return indices[:v//2]
     
@@ -86,7 +92,7 @@ def move(state):
 from anneal import Annealer
 annealer = Annealer(energy, move)
 
-for file in range(1,21):
+for file in range(2,3):
     fin = open("../%d.in" % file, "r")
     v, e, p = map(int, fin.readline().split())
     # precompute modular inverses
@@ -107,4 +113,5 @@ for file in range(1,21):
     changed_index = [0]
     state, e = annealer.anneal(state, 100, 100, 
                                 350000, updates=6)
+    print " ".join(map(str, state))
     print sum(satisfies(eqn, state) for eqn in equations)  # the "final" score
