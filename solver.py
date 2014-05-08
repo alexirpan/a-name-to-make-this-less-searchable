@@ -30,7 +30,8 @@ def local_max(state):
         if best_score - score[original_val] > 0:
             plateau[0] = 0
             return index, best_val, best_score - score[original_val]
-        elif plateau[0] < 10 and best_val != original_val:
+        # A magic, tweakable constant
+        elif plateau[0] < 350 and best_val != original_val:
             plateau[0] += 1
             return index, best_val, 0
     return indices[:v//2]
@@ -53,13 +54,13 @@ def move(state, prev_energy):
         for index in val:
             state[index] = random.randint(0, p-1)
         prev_energy[0] = sum(satisfies(eqn, state) for eqn in equations)
-            
-ITERATIONS = 350000
-T = 100.0
 
-for file in range(2,3):
+# not used yet
+def run(p_num):
     t = time.time()
-    fin = open("../%d.in" % file, "r")
+    count = 0
+    fin = open("../2.in", "r")
+    fout = open("2-p-%d.out" % p_num, "w")
     v, e, p = map(int, fin.readline().split())
     # precompute modular inverses
     inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
@@ -78,11 +79,47 @@ for file in range(2,3):
     best_ener = 0
     prev_equations = [satisfies(eqn, state) for eqn in equations]
     changed_index = [0]
-    for _ in xrange(ITERATIONS):
+    while time.time() - t < 120:
+        count += 1
         move(state, prev_energy)
         if prev_energy[0] > best_ener:
             best_state = list(state)
             best_ener = prev_energy[0]
-    print "%f seconds" % (time.time() - t)
-    print " ".join(map(str, best_state))
-    print sum(satisfies(eqn, best_state) for eqn in equations)  # the "final" score
+            print >> fout, " ".join(map(str, best_state))
+            print >> fout, "Satisfies %d" % best_ener
+            print >> fout, "%d iterations" % count
+            print >> fout, "%f seconds" % (time.time() - t)
+        
+        
+for file in range(2,3):
+    t = time.time()
+    count = 0
+    fin = open("../2.in", "r")
+    v, e, p = map(int, fin.readline().split())
+    # precompute modular inverses
+    inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
+    equations = [map(int, fin.readline().split()) for _ in xrange(e)]
+    prev_energy = [0]
+    # index i matches to equation indices that include it
+    includes = [ [] for _ in xrange(v) ]
+    for i, eqn in enumerate(equations):
+        a,b,c,d,e = eqn
+        includes[b].append(i)
+        includes[d].append(i)
+        
+    # initial state
+    state = [random.randint(0, p-1) for _ in xrange(v)]
+    best_state = None
+    best_ener = 0
+    prev_equations = [satisfies(eqn, state) for eqn in equations]
+    changed_index = [0]
+    while time.time() - t < 120:
+        count += 1
+        move(state, prev_energy)
+        if prev_energy[0] > best_ener:
+            best_state = list(state)
+            best_ener = prev_energy[0]
+            print " ".join(map(str, best_state))
+            print "Satisfies %d" % best_ener
+            print "%d iterations" % count
+            print "%f seconds" % (time.time() - t)
