@@ -5,7 +5,8 @@ import random
 # according to PyPy docs, this object makes the class new-style
 # and new-style are faster classes
 class HillClimber(object):
-    def __init__(self, fin, time_limit=120):
+    def __init__(self, fin_name, fout_name, time_limit=120):
+        fin = open(fin_name, "r")
         v, e, p = map(int, fin.readline().split())
         self.v = v
         self.e = e
@@ -23,6 +24,7 @@ class HillClimber(object):
             self.includes[b].append(i)
             self.includes[d].append(i)
         fin.close()
+        self.fout_name = fout_name
             
     def satisfies(self, eqn, assign):
         a, b, c, d, e = eqn
@@ -83,7 +85,8 @@ class HillClimber(object):
             self.prev_energy = sum(self.satisfies(eqn, state) for eqn in self.equations)
 
     # not used yet
-    def run(self, fout):
+    def run(self):
+        fout = open(self.fout_name, "w")
         t = time.time()
         count = 0
         # initial state
@@ -102,5 +105,21 @@ class HillClimber(object):
                 print >> fout, "%f seconds" % (time.time() - t)
         fout.close()
         
-h = HillClimber(open("../2.in", "r"))
-h.run(open("2-n.out", "w"))
+from multiprocessing import Process
+# Windows requires a standalone function, can't use bound or unbound version
+def spawn(climber):
+    climber.run()
+# Stupid Windows, makes the name == main needed as well
+
+if __name__ == '__main__':
+    NUM_CORES = 4
+    climbers = [HillClimber("../2.in", "2-%d.out"%i, 10) for i in range(NUM_CORES)]
+    processes = [Process(target=spawn, args=(climber,)) for climber in climbers]
+
+    for proc in processes:
+        proc.start()
+        
+    print "All processes have started"
+    for proc in processes:
+        proc.join()
+        print "Stopped"
