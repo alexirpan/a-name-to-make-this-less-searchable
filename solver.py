@@ -1,21 +1,10 @@
 # Global variables are worst variables but I'm lazy
-from math import floor
+import time
 import random
 
 def satisfies(eqn, assign):
     a, b, c, d, e = eqn
     return (a * assign[b] + c * assign[d] + e) % p == 0
-    
-def energy(assign):
-    # note that we want to minimize this!
-    # rough test for now
-    #
-    # to make this run faster, this function has memory
-    # only needs to update on the updated indices
-    # uses global variables for this...I KNOW IT'S AWFUL
-    for eqn_index in includes[changed_index[0]]:
-        prev_equations[eqn_index] = satisfies(equations[eqn_index], assign)
-    return -sum(prev_equations)
     
 plateau = [0]
     
@@ -40,65 +29,42 @@ def local_max(state):
         # compare best score to initial value. if 0, then this is a local max for this variable
         if best_score - score[original_val] > 0:
             plateau[0] = 0
-            return index, best_val
+            return index, best_val, best_score - score[original_val]
         elif plateau[0] < 10 and best_val != original_val:
             plateau[0] += 1
-            return index, best_val
+            return index, best_val, 0
     return indices[:v//2]
     
-def assign_with_given(state, index):
-    # assign every other variable to satisfy most with this value for index
-    # ignore any equation that does not include index
-    scores = [ [0]*p for _ in xrange(v)]
-    for eqn_ind in includes[index]:
-        a, b, c, d, e = equations[eqn_ind]
-        if index == b:
-            satisfies = (-inverses[a] * (c * state[d] + e)) % p
-            scores[d][satisfies] += 1
-        else:
-            # index == d
-            satisfies = (-inverses[c] * (a * state[b] + e)) % p
-            scores[b][satisfies] += 1
-    for i in xrange(v):
-        if i == index:
-            continue
-        best_val, best_score = max(enumerate(scores[i]), key=lambda x: x[1])
-        state[i] = best_val
-    
-def move(state):
-    # to get proper annealing, need to incorporate a way to get past local maxima...
-    # let's try a semi-hill climbing strategy...
-    # while you are not a local max, move upwards
-    # when you are a local max, randomly change one variable
-    # (the change is uniform across all values)
-    # problem: most likely, it will just change that index back...
-    # will not change back if other variables are now no longer local max?
+def move(state, prev_energy):
+    # moves the state, returns the index and old value in case it has to roll back
+    # In a reset, returns -1, -1
+    # (avoids copying entire list this way)
     val = local_max(state)
     if type(val) is tuple:
         # not a local max
-        index, value = val
+        index, value, diff = val
         changed_index[0] = index
         state[index] = value
+        prev_energy[0] += diff
     else:
         # is a local max
         # to get away from this, you have to change pretty radically, so...
         # randomly change half the indices
         for index in val:
             state[index] = random.randint(0, p-1)
-        # we now have to reset this array
-        for i in xrange(e):
-            prev_equations[i] = satisfies(equations[i], state)
-
-from anneal import Annealer
-annealer = Annealer(energy, move)
+        prev_energy[0] = sum(satisfies(eqn, state) for eqn in equations)
+            
+ITERATIONS = 350000
+T = 100.0
 
 for file in range(2,3):
+    t = time.time()
     fin = open("../%d.in" % file, "r")
     v, e, p = map(int, fin.readline().split())
     # precompute modular inverses
     inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
     equations = [map(int, fin.readline().split()) for _ in xrange(e)]
-
+    prev_energy = [0]
     # index i matches to equation indices that include it
     includes = [ [] for _ in xrange(v) ]
     for i, eqn in enumerate(equations):
@@ -108,10 +74,15 @@ for file in range(2,3):
         
     # initial state
     state = [random.randint(0, p-1) for _ in xrange(v)]
-    # initial satisfied array
+    best_state = None
+    best_ener = 0
     prev_equations = [satisfies(eqn, state) for eqn in equations]
     changed_index = [0]
-    state, e = annealer.anneal(state, 100, 100, 
-                                350000, updates=6)
-    print " ".join(map(str, state))
-    print sum(satisfies(eqn, state) for eqn in equations)  # the "final" score
+    for _ in xrange(ITERATIONS):
+        move(state, prev_energy)
+        if prev_energy[0] > best_ener:
+            best_state = list(state)
+            best_ener = prev_energy[0]
+    print "%f seconds" % (time.time() - t)
+    print " ".join(map(str, best_state))
+    print sum(satisfies(eqn, best_state) for eqn in equations)  # the "final" score
