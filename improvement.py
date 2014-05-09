@@ -7,9 +7,6 @@ https://stackoverflow.com/questions/4798654/modular-multiplicative-inverse-funct
 import random
 from modmath import Mod
 
-in_file = 'question.in'
-solution_file = 'solution.out'
-
 def normalize(equation):
     """Changes an equation from the form a*xb + c*xd + e = 0
     to xa + b*xc = d, with a < c.
@@ -123,28 +120,8 @@ def only_one(s):
     return -len(s) in s
     
 #Read input
-with open(in_file) as f:
-    #Number of vertices, equations, and prime
-    V, E, P = [int(x) for x in f.readline().split()]
-    Mod.P = P
-    Mod.calculate_inverses()
-    #List of relevant equations for every variable
-    equations = [list() for _ in range(V)]
-    all_equations = []
-    #Process each equation
-    tree = make_disjoint(V)
-    tree_done = False
-    for line in f:
-        equation = [int(x) for x in line.split()]
-        equation = normalize(equation)
-        v1, b, v2, d = equation
-        all_equations.append(equation)
-        if not tree_done and find(tree, v1) != find(tree, v2):
-            equations[v1].append(equation)
-            equations[v2].append(equation)
-            union(tree, v1, v2)
-            if only_one(tree):
-                tree_done = True
+in_files = ["official_input_files/%d.in" % i for i in range(1,31)]
+out_files = ["reverse-break-%d.out" % i for i in range(1, 31)]
 
 def solve_tree():
     best_assignment, best_value = None, -1
@@ -171,8 +148,32 @@ def solve_tree():
             best_assignment, best_value = assign[:], value
     with open(solution_file, 'w') as f:
         f.write(' '.join([str(x) for x in best_assignment]))
-        
-solve_tree()
+
+for in_file, solution_file in zip(in_files, out_files):
+    with open(in_file) as f:
+        print in_file
+        #Number of vertices, equations, and prime
+        V, E, P = [int(x) for x in f.readline().split()]
+        Mod.P = P
+        Mod.calculate_inverses()
+        #List of relevant equations for every variable
+        equations = [list() for _ in range(V)]
+        all_equations = [normalize(map(int, line.strip().split())) for line in f]
+        all_equations.reverse()
+        #Process each equation
+        tree = make_disjoint(V)
+        tree_done = False
+        for equation in all_equations:
+            v1, b, v2, d = equation
+            if not tree_done and find(tree, v1) != find(tree, v2):
+                equations[v1].append(equation)
+                equations[v2].append(equation)
+                union(tree, v1, v2)
+                if only_one(tree):
+                    tree_done = True
+        if not tree_done:
+            print "Graph disconnected"
+        solve_tree()
 exit()
                 
 #Pick random vertex to start
