@@ -44,7 +44,7 @@ def move(state, prev_energy):
     if type(val) is tuple:
         # not a local max
         index, value, diff = val
-        changed_index[0] = index
+        index, value, diff = val
         state[index] = value
         prev_energy[0] += diff
     else:
@@ -59,7 +59,7 @@ for file in range(1,2):
     t = time.time()
     count = 0
     #print "Input %d" % file
-    fin = open("4k.in", "r")
+    fin = open("../2.in", "r")
     v, e, p = map(int, fin.readline().split())
     # precompute modular inverses
     inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
@@ -77,14 +77,13 @@ for file in range(1,2):
     prev_energy = [sum(satisfies(eqn, state) for eqn in equations)]
     best_state = None
     best_ener = 0
-    fout = open("4k.out", "w")
-    while time.time() - t < 1080:
+    while time.time() - t < 120:
         count += 1
         move(state, prev_energy)
         if prev_energy[0] > best_ener:
             best_state = list(state)
             best_ener = prev_energy[0]
-            print >> fout, " ".join(map(str, best_state))
-            print >> fout, "Satisfies %d" % best_ener
-            print >> fout, "%d iterations" % count
-            print >> fout, "%f seconds" % (time.time() - t)
+            print " ".join(map(str, best_state))
+            print "Satisfies %d" % best_ener
+            print "%d iterations" % count
+            print "%f seconds" % (time.time() - t)
