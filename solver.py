@@ -5,7 +5,7 @@ import random
 # according to PyPy docs, this object makes the class new-style
 # and new-style are faster classes
 class HillClimber(object):
-    def __init__(self, fin_name, fout_name, time_limit=120):
+    def __init__(self, fin_name, fout_name, time_limit=1080):
         fin = open(fin_name, "r")
         v, e, p = map(int, fin.readline().split())
         self.v = v
@@ -93,6 +93,7 @@ class HillClimber(object):
         state = [random.randint(0, self.p-1) for _ in xrange(self.v)]
         best_state = None
         best_ener = 0
+        self.prev_energy = sum(self.satisfies(eqn, state) for eqn in self.equations)
         while time.time() - t < self.time_limit:
             count += 1
             self.move(state)
@@ -113,13 +114,13 @@ def spawn(climber):
 
 if __name__ == '__main__':
     NUM_CORES = 4
-    climbers = [HillClimber("../2.in", "2-%d.out"%i, 10) for i in range(NUM_CORES)]
-    processes = [Process(target=spawn, args=(climber,)) for climber in climbers]
+    for file in range(1,2):
+        print "Input %d" % file
+        climbers = [HillClimber("question.in", "q-%d.out"% i, 120) for i in range(NUM_CORES)]
+        processes = [Process(target=spawn, args=(climber,)) for climber in climbers]
 
-    for proc in processes:
-        proc.start()
-        
-    print "All processes have started"
-    for proc in processes:
-        proc.join()
-        print "Stopped"
+        for proc in processes:
+            proc.start()
+            
+        for proc in processes:
+            proc.join()
