@@ -114,9 +114,11 @@ def spawn(climber):
 
 if __name__ == '__main__':
     NUM_CORES = 4
-    for file in range(1,2):
+    # 11.0 files
+    important = (11,)
+    for file in important:
         print "Input %d" % file
-        climbers = [HillClimber("../2.in", "2-%d.out"% i, 120) for i in range(NUM_CORES)]
+        climbers = [HillClimber("official_input_files/%d.in" % file, "%d-%d.out"% (file, i), 300) for i in range(NUM_CORES)]
         processes = [Process(target=spawn, args=(climber,)) for climber in climbers]
 
         for proc in processes:

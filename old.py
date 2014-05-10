@@ -59,7 +59,7 @@ for file in range(1,2):
     t = time.time()
     count = 0
     #print "Input %d" % file
-    fin = open("../2.in", "r")
+    fin = open("official_input_files/20.in", "r")
     v, e, p = map(int, fin.readline().split())
     # precompute modular inverses
     inverses = [None] + [pow(i, p-2, p) for i in xrange(1, p)]
@@ -77,7 +77,7 @@ for file in range(1,2):
     prev_energy = [sum(satisfies(eqn, state) for eqn in equations)]
     best_state = None
     best_ener = 0
-    while time.time() - t < 120:
+    while time.time() - t < 360:
         count += 1
         move(state, prev_energy)
         if prev_energy[0] > best_ener:

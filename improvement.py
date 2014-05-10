@@ -120,8 +120,8 @@ def only_one(s):
     return -len(s) in s
     
 #Read input
-in_files = ["official_input_files/%d.in" % i for i in range(1,31)]
-out_files = ["reverse-break-%d.out" % i for i in range(1, 31)]
+in_files = ["official_input_files/%d.in" % i for i in (7, 13, 14, 15, 21)]
+out_files = ["comp-rev-break-%d.out" % i for i in (7, 13, 14, 15, 21)]
 
 def solve_tree():
     best_assignment, best_value = None, -1
@@ -146,9 +146,51 @@ def solve_tree():
         value = judge(assign, all_equations)
         if value > best_value:
             best_assignment, best_value = assign[:], value
+    # if graph is disconnected there will still be components here
+    while len(visited) < V:
+        print "Next component"
+        print len(visited)
+        local_best, local_val = None, -1
+        start_ind = None
+        for i in xrange(V):
+            if i not in visited:
+                start_ind = i
+                break
+        if best_assignment[start_ind] != -1:
+            break
+        for start_val in xrange(P):
+            assign = best_assignment[:]
+            assign[start_ind] = start_val
+            next_visited = set(visited)
+            to_check = set()
+            to_check.add(start_ind)
+            while to_check:
+                i = to_check.pop()
+                if i in next_visited:
+                    continue
+                next_visited.add(i)
+                for eqn in equations[i]:
+                    if assign[i] == -1:
+                        assert False, "What the fuck"
+                    v, value = solve_for(eqn, i, assign[i])
+                    if v not in next_visited:
+                        assign[v] = value
+                        to_check.add(v)
+            value = judge(assign, all_equations)
+            if value > local_val:
+                local_best, local_val = assign[:], value
+        best_assignment = local_best[:]
+        best_value = local_val
+        visited = set(next_visited)           
     with open(solution_file, 'w') as f:
         f.write(' '.join([str(x) for x in best_assignment]))
 
+def find_components(tree):
+    num = len(filter(lambda x: x < 0, tree))
+    roots = [find(tree, i) for i in xrange(len(tree))]
+    d = {}
+    # do something here?
+        
 for in_file, solution_file in zip(in_files, out_files):
     with open(in_file) as f:
         print in_file
@@ -173,6 +215,8 @@ for in_file, solution_file in zip(in_files, out_files):
                     tree_done = True
         if not tree_done:
             print "Graph disconnected"
+            print len(filter(lambda x: x < 0, tree))
+        
         solve_tree()
 exit()
                 
