@@ -5,7 +5,7 @@ import random
 # according to PyPy docs, this object makes the class new-style
 # and new-style are faster classes
 class HillClimber(object):
-    def __init__(self, fin_name, fout_name, time_limit=1080):
+    def __init__(self, fin_name, fout_name, seed=None, time_limit=1080):
         fin = open(fin_name, "r")
         v, e, p = map(int, fin.readline().split())
         self.v = v
@@ -25,6 +25,7 @@ class HillClimber(object):
             self.includes[d].append(i)
         fin.close()
         self.fout_name = fout_name
+        self.seed = seed
             
     def satisfies(self, eqn, assign):
         a, b, c, d, e = eqn
@@ -61,7 +62,7 @@ class HillClimber(object):
             # on 2.in, in a 2 minute run there is almost always one time where improvement took > 300 iterations
             # and usually there is only one
             # too lazy to actually statistically analyze it
-            elif self.plateau < 350 and best_val != original_val:
+            elif self.plateau < 10000 and best_val != original_val:
                 self.plateau += 1
                 return index, best_val
         return indices[:v//2]
@@ -76,6 +77,7 @@ class HillClimber(object):
             index, value = val
             state[index] = value
         else:
+            return False
             # is a local max
             # to get away from this, you have to change pretty radically, so...
             # randomly change half the indices
@@ -90,13 +92,16 @@ class HillClimber(object):
         t = time.time()
         count = 0
         # initial state
-        state = [random.randint(0, self.p-1) for _ in xrange(self.v)]
+        if self.seed:
+            state = self.seed
+        else:
+            state = [random.randint(0, self.p-1) for _ in xrange(self.v)]
         best_state = None
         best_ener = 0
         self.prev_energy = sum(self.satisfies(eqn, state) for eqn in self.equations)
         while time.time() - t < self.time_limit:
             count += 1
-            self.move(state)
+            success = self.move(state)
             if self.prev_energy > best_ener:
                 best_state = list(state)
                 best_ener = self.prev_energy
@@ -104,6 +109,8 @@ class HillClimber(object):
                 print >> fout, "Satisfies %d" % best_ener
                 print >> fout, "%d iterations" % count
                 print >> fout, "%f seconds" % (time.time() - t)
+            if not success:
+                break
         fout.close()
         
 from multiprocessing import Process
@@ -115,10 +122,12 @@ def spawn(climber):
 if __name__ == '__main__':
     NUM_CORES = 4
     # 11.0 files
-    important = (11,)
+    important = range(1,31)
+    with open("official_input_files/solutions.txt") as f:
+        seeds = [map(int, line.strip().split()) for line in f]
     for file in important:
         print "Input %d" % file
-        climbers = [HillClimber("official_input_files/%d.in" % file, "%d-%d.out"% (file, i), 300) for i in range(NUM_CORES)]
+        climbers = [HillClimber("official_input_files/%d.in" % file, "%d-%d.out"% (file, i), seed=seeds[file], time_limit=300) for i in range(NUM_CORES)]
         processes = [Process(target=spawn, args=(climber,)) for climber in climbers]
 
         for proc in processes:
